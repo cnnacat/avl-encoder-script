@@ -1,5 +1,7 @@
 #define ARDUINO_UNO_STANDARD_BAUD_RATE 9600
-#define ARDUINO_UNO_RX                 0
+#define ARDUINO_UNO_DIGITAL_INPUT      12
+#define ARDUINO_UNO_DIGITAL_OUTPUT     13
+
 
 #include <stdint.h>
 
@@ -26,13 +28,14 @@ unsigned long delta_time()
 
 void setup() 
 {
-  // put your setup code here, to run once:
     Serial.begin(ARDUINO_UNO_STANDARD_BAUD_RATE);
 
-    pinMode(ARDUINO_UNO_RX, INPUT);
+    pinMode(ARDUINO_UNO_DIGITAL_INPUT, INPUT);
+    pinMode(ARDUINO_UNO_DIGITAL_OUTPUT, OUTPUT);
+                                                                  
 
     attackInterrupt(
-      digitalPinToInterrupt(ARDUINO_UNO_RX),
+      digitalPinToInterrupt(ARDUINO_UNO_DIGITAL_INPUT),
       tick,
       RISING
     );
@@ -41,13 +44,12 @@ void setup()
 
 void loop() 
 {
-  // put your main code here, to run repeatedly:
   if (delta_time() > 50)
   {
     last_millis = 50;
 
     rpm = (float)ticks * 1200.0f; // 60s/50ms aka 60s/0.05s
-    Serial.printf("Current RPM: %.1f%%", rpm);
+    Serial.printf("Current RPM: %.1f%%\n", rpm);
 
     ticks = 0;
   }
