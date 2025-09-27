@@ -1,7 +1,8 @@
 #define ARDUINO_UNO_STANDARD_BAUD_RATE 9600
-#define ARDUINO_UNO_DIGITAL_INPUT      12
-#define ARDUINO_UNO_DIGITAL_OUTPUT     13
-
+#define ARDUINO_UNO_DIGITAL_PIN_2      2
+#define ARDUINO_UNO_DIGITAL_PIN_3      3
+#define PPR                            600.0f
+#define time_window_ms                 500
 
 #include <stdint.h>
 
@@ -30,27 +31,44 @@ void setup()
 {
     Serial.begin(ARDUINO_UNO_STANDARD_BAUD_RATE);
 
-    pinMode(ARDUINO_UNO_DIGITAL_INPUT, INPUT);
-    pinMode(ARDUINO_UNO_DIGITAL_OUTPUT, OUTPUT);
+    // Channel A (Green)
+    pinMode(ARDUINO_UNO_DIGITAL_PIN_2, INPUT_PULLUP);
+
+    // Channel B (White)
+    // pinMode(ARDUINO_UNO_DIGITAL_PIN_3, INPUT_PULLUP); // Not needed unless you're interested in direction.
                                                                   
 
-    attackInterrupt(
-      digitalPinToInterrupt(ARDUINO_UNO_DIGITAL_INPUT),
+    attachInterrupt(
+      digitalPinToInterrupt(ARDUINO_UNO_DIGITAL_PIN_2),
       tick,
       RISING
     );
 
+    last_millis = millis();
 }
 
 void loop() 
 {
-  if (delta_time() > 50)
+  unsigned long delta_time_ms = delta_time();
+  if (delta_time_ms > time_window_ms)
   {
-    last_millis = 50;
+    float    delta_time_sec;
+    uint16_t tick_snapshot;
 
-    rpm = (float)ticks * 1200.0f; // 60s/50ms aka 60s/0.05s
-    Serial.printf("Current RPM: %.1f%%\n", rpm);
+    noInterrupts();
+    tick_snapshot = ticks;
+    ticks         = 0;
+    interrupts();
 
-    ticks = 0;
+    // Convert milliseconds to seconds
+    delta_time_sec  = delta_time_ms / 1000.0f; 
+
+    // Upscale to a minute (60 seconds)
+    rpm = ((float)tick_snapshot * 60.0f) / (PPR * delta_time_sec); 
+
+    Serial.print  ("Current RPM: ");
+    Serial.println(rpm, 1);
+
+    last_millis += delta_time_ms;
   }
 }
